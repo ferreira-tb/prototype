@@ -1,4 +1,4 @@
-import { assertInteger, assertString, isString } from '@tb-dev/ts-guard';
+import { assertInteger, assertPositiveNumber, assertString, isString } from '@tb-dev/ts-guard';
 
 declare global {
     interface Array<T> {
@@ -16,11 +16,14 @@ declare global {
          * @returns Returns the element associated with the specified key.
          * If no element is associated with the specified key, throws an error.
          */
-        assert(key: K, message?: string): V;
+        getStrict(key: K, message?: string): V;
     }
 
     interface Number {
-        /** Converts a number to a Date object, exactly like `new Date()` does. */
+        /**
+         * Converts a number to a Date object, exactly like `new Date()` does.
+         * This will throw an error if the number is not a valid timestamp.
+         */
         toDate(): Date;
     }
 
@@ -55,19 +58,31 @@ declare global {
 
     interface URLSearchParams {
         /**
-         * Returns the value of the first name-value pair whose name is `name`.
-         * If there are no such pairs, throws a error.
+         * Get the first value associated to the given search parameter, throwing an error if it does not exist.
+         * @param name The name of the search parameter to get.
          */
-        assert<T extends string>(name: string): T;
+        getStrict<T extends string>(name: string): T;
 
         /**
-         * Get the value of the first name-value pair whose name is `name`, then tries to parse it as an integer.
-         * If it fails (i.e. `NaN` is returned), throws a error.
+         * Get the first value associated to the given search parameter, then tries to parse it as an integer if it is not `null`.
+         * The returned value may be `NaN` if it cannot be parsed as an integer.
+         * If you want to throw an error if the value cannot be parsed as an integer, use `getAsIntegerStrict()` instead.
+         * @param name The name of the search parameter to get.
          * @param radix A value between 2 and 36 that specifies the base of the number.
          * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
          * All other strings are considered decimal.
          */
-        assertAsInteger(name: string, radix?: number): number;
+        getAsInteger(name: string, radix?: number): number | ReturnType<URLSearchParams['get']>;
+
+        /**
+         * Get the first value associated to the given search parameter, then tries to parse it as an integer.
+         * If it cannot be parsed as an integer, throws a error.
+         * @param name The name of the search parameter to get.
+         * @param radix A value between 2 and 36 that specifies the base of the number.
+         * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
+         * All other strings are considered decimal.
+         */
+        getAsIntegerStrict(name: string, radix?: number): number;
     }
 
     interface DateConstructor {
@@ -94,7 +109,7 @@ declare global {
          * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
          * All other strings are considered decimal. 
          */
-        assertInteger(rawString: string, radix?: number): number
+        parseIntStrict(rawString: string, radix?: number): number
     }
 }
 
@@ -108,7 +123,7 @@ Array.prototype.asIntegerListStrict = function(): number[] {
     return parsedArray.filter((i) => !Number.isNaN(i));
 };
 
-Map.prototype.assert = function<K, V>(key: K, message?: string): V {
+Map.prototype.getStrict = function<K, V>(key: K, message?: string): V {
     const item = this.get(key);
     if (!isString(message)) message = 'O item não existe no mapa.';
     assert(item !== undefined, message);
@@ -116,7 +131,9 @@ Map.prototype.assert = function<K, V>(key: K, message?: string): V {
 };
 
 Number.prototype.toDate = function(): Date {
-    return new Date(this.valueOf());
+    const value = this.valueOf();
+    assertPositiveNumber(value);
+    return new Date(value);
 };
 
 String.prototype.splitAndTrim = function(separator: string | RegExp, limit?: number): string[] {
@@ -134,16 +151,22 @@ String.prototype.splitAsIntegerListStrict = function(separator: string | RegExp,
     return split.asIntegerListStrict();
 };
 
-URLSearchParams.prototype.assert = function<T extends string>(name: string): T {
+URLSearchParams.prototype.getStrict = function<T extends string>(name: string): T {
     const item = this.get(name);
     assert(item !== null, 'O item não existe entre os parâmetros da URL.');
     return item as T;
 };
 
-URLSearchParams.prototype.assertAsInteger = function(name: string, radix: number = 10): number {
+URLSearchParams.prototype.getAsInteger = function(name: string, radix: number = 10): number | ReturnType<URLSearchParams['get']> {
+    const item = this.get(name);
+    if (item === null) return item;
+    return Number.parseInt(item, radix);
+};
+
+URLSearchParams.prototype.getAsIntegerStrict = function(name: string, radix: number = 10): number {
     const item = this.get(name);
     assertString(item, 'O item não existe entre os parâmetros da URL.');
-    return Number.assertInteger(item, radix);
+    return Number.parseIntStrict(item, radix);
 };
 
 ////// STATIC METHODS //////
@@ -171,7 +194,7 @@ Date.thirtyDaysFromNow = function(): number {
     return Date.now() + (3600000 * 24 * 30);
 };
 
-Number.assertInteger = function(rawString: string, radix: number = 10): number {
+Number.parseIntStrict = function(rawString: string, radix: number = 10): number {
     const parsed = Number.parseInt(rawString, radix);
     assertInteger(parsed, 'Não foi possível obter um número inteiro a partir da string.');
     return parsed;
