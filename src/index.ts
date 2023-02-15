@@ -19,6 +19,11 @@ declare global {
         assert(key: K, message?: string): V;
     }
 
+    interface Number {
+        /** Converts a number to a Date object, exactly like `new Date()` does. */
+        toDate(): Date;
+    }
+
     interface String {
         /**
          * Split a string into substrings using the specified separator and return them as a list of strings.
@@ -65,6 +70,21 @@ declare global {
         assertAsInteger(name: string, radix?: number): number;
     }
 
+    interface DateConstructor {
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and yesterday, but at the same time of now. */
+        yesterday(): number;
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and tomorrow, but at the same time of now. */
+        tomorrow(): number;
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and seven days ago, but at the same time of now. */
+        sevenDaysAgo(): number;
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and seven days from now, but at the same time of now. */
+        sevenDaysFromNow(): number;
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and thirty days ago, but at the same time of now. */
+        thirtyDaysAgo(): number;
+        /** Returns the number of milliseconds elapsed since the ECMAScript epoch and thirty days from now, but at the same time of now. */
+        thirtyDaysFromNow(): number;
+    }
+
     interface NumberConstructor {
         /**
          * Converts a string to an integer, exactly like `Number.parseInt()` does.
@@ -95,6 +115,10 @@ Map.prototype.assert = function<K, V>(key: K, message?: string): V {
     return item;
 };
 
+Number.prototype.toDate = function(): Date {
+    return new Date(this.valueOf());
+};
+
 String.prototype.splitAndTrim = function(separator: string | RegExp, limit?: number): string[] {
     const split = this.split(separator, limit);
     return split.map((i) => i.trim()).filter((i) => i.length > 0);
@@ -123,6 +147,30 @@ URLSearchParams.prototype.assertAsInteger = function(name: string, radix: number
 };
 
 ////// STATIC METHODS //////
+Date.yesterday = function(): number {
+    return Date.now() - (3600000 * 24);
+};
+
+Date.tomorrow = function(): number {
+    return Date.now() + (3600000 * 24);
+};
+
+Date.sevenDaysAgo = function(): number {
+    return Date.now() - (3600000 * 24 * 7);
+};
+
+Date.sevenDaysFromNow = function(): number {
+    return Date.now() + (3600000 * 24 * 7);
+};
+
+Date.thirtyDaysAgo = function(): number {
+    return Date.now() - (3600000 * 24 * 30);
+};
+
+Date.thirtyDaysFromNow = function(): number {
+    return Date.now() + (3600000 * 24 * 30);
+};
+
 Number.assertInteger = function(rawString: string, radix: number = 10): number {
     const parsed = Number.parseInt(rawString, radix);
     assertInteger(parsed, 'Não foi possível obter um número inteiro a partir da string.');
