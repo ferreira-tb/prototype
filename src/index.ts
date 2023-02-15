@@ -1,6 +1,13 @@
-import { assertInteger, assertString } from '@tb-dev/ts-guard';
+import { assertInteger, assertString, isString } from '@tb-dev/ts-guard';
 
 declare global {
+    interface Array<T> {
+        /** Parses the array as a list of integers, but do not filter out any non-integer values. */
+        asIntegerList(): number[];
+        /** Parses the array as a list of integers, filtering out any non-integer values. */
+        asIntegerListStrict(): number[];
+    }
+
     interface Map<K, V> {
         /**
          * Returns a specified element from the Map object. If the value that is associated to the provided key is an object,
@@ -10,6 +17,35 @@ declare global {
          * If no element is associated with the specified key, throws an error.
          */
         assert(key: K, message?: string): V;
+    }
+
+    interface String {
+        /**
+         * Split a string into substrings using the specified separator and return them as a list of strings.
+         * However, removes any empty strings from the returned list and trims each string.
+         * @param separator A string that identifies character or characters to use in separating the string.
+         * If omitted, a single-element array containing the entire string is returned.
+         * @param limit A value used to limit the number of elements returned in the array.
+         */
+        splitAndTrim(separator: string | RegExp, limit?: number): string[];
+
+        /**
+         * Split a string into substrings using the specified separator and return them as a list of integers.
+         * The returned list may contain non-integer values.
+         * @param separator A string that identifies character or characters to use in separating the string.
+         * If omitted, a single-element array containing the entire string is returned.
+         * @param limit A value used to limit the number of elements returned in the array.
+         */
+        splitAsIntegerList(separator: string | RegExp, limit?: number): number[];
+
+        /**
+         * Split a string into substrings using the specified separator and return them as a list of integers.
+         * If the string cannot be parsed as an integer, it is not included in the returned list.
+         * @param separator A string that identifies character or characters to use in separating the string.
+         * If omitted, a single-element array containing the entire string is returned.
+         * @param limit A value used to limit the number of elements returned in the array.
+         */
+        splitAsIntegerListStrict(separator: string | RegExp, limit?: number): number[];
     }
 
     interface URLSearchParams {
@@ -42,17 +78,36 @@ declare global {
     }
 }
 
+////// PROTOTYPES //////
+Array.prototype.asIntegerList = function(): number[] {
+    return this.map((i) => Number.parseInt(i, 10));
+};
+
+Array.prototype.asIntegerListStrict = function(): number[] {
+    const parsedArray = this.map((i) => Number.parseInt(i, 10));
+    return parsedArray.filter((i) => !Number.isNaN(i));
+};
+
 Map.prototype.assert = function<K, V>(key: K, message?: string): V {
     const item = this.get(key);
-    if (typeof message !== 'string') message = 'O item não existe no mapa.';
+    if (!isString(message)) message = 'O item não existe no mapa.';
     assert(item !== undefined, message);
     return item;
 };
 
-Number.assertInteger = function(rawString: string, radix: number = 10): number {
-    const parsed = Number.parseInt(rawString, radix);
-    assertInteger(parsed, 'Não foi possível obter um número inteiro a partir da string.');
-    return parsed;
+String.prototype.splitAndTrim = function(separator: string | RegExp, limit?: number): string[] {
+    const split = this.split(separator, limit);
+    return split.map((i) => i.trim()).filter((i) => i.length > 0);
+};
+
+String.prototype.splitAsIntegerList = function(separator: string | RegExp, limit?: number): number[] {
+    const split = this.split(separator, limit);
+    return split.asIntegerList();
+};
+
+String.prototype.splitAsIntegerListStrict = function(separator: string | RegExp, limit?: number): number[] {
+    const split = this.split(separator, limit);
+    return split.asIntegerListStrict();
 };
 
 URLSearchParams.prototype.assert = function<T extends string>(name: string): T {
@@ -65,4 +120,11 @@ URLSearchParams.prototype.assertAsInteger = function(name: string, radix: number
     const item = this.get(name);
     assertString(item, 'O item não existe entre os parâmetros da URL.');
     return Number.assertInteger(item, radix);
+};
+
+////// STATIC METHODS //////
+Number.assertInteger = function(rawString: string, radix: number = 10): number {
+    const parsed = Number.parseInt(rawString, radix);
+    assertInteger(parsed, 'Não foi possível obter um número inteiro a partir da string.');
+    return parsed;
 };
