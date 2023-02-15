@@ -1,4 +1,4 @@
-import { assertInteger, assertPositiveNumber, assertString, isString } from '@tb-dev/ts-guard';
+import { assertFinite, assertInteger, assertPositiveNumber, assertString, isFiniteNumber, isInteger, isString } from '@tb-dev/ts-guard';
 
 declare global {
     interface Array<T> {
@@ -54,6 +54,41 @@ declare global {
          * @param limit A value used to limit the number of elements returned in the array.
          */
         splitAsIntegerListStrict(separator: string | RegExp, limit?: number): number[];
+
+        /**
+         * Parses the string as an integer, exactly like `Number.parseInt()` does.
+         * @param radix A value between 2 and 36 that specifies the base of the number.
+         * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
+         * All other strings are considered decimal.
+         */
+        toInteger(radix?: number): number;
+
+        /**
+         * Parses the string as an integer, exactly like `Number.parseIntStrict()` does.
+         * @param radix A value between 2 and 36 that specifies the base of the number.
+         * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
+         * All other strings are considered decimal.
+         */
+        toIntegerStrict(radix?: number): number;
+
+        /**
+         * Parses the string as an integer, exactly like `Number.parseInt()` does.
+         * If the string cannot be parsed as an integer, returns `null` instead.
+         * @param radix A value between 2 and 36 that specifies the base of the number.
+         * If this argument is not supplied, strings with a prefix of '0x' are considered hexadecimal.
+         * All other strings are considered decimal.
+         */
+        toIntegerOrNull(radix?: number): number | null;
+
+        /** Parses the string as a float, exactly like `Number.parseFloat()` does. */
+        toFloat(): number;
+        /** Parses the string as a float, exactly like `Number.parseFloatStrict()` does. */
+        toFloatStrict(): number;
+        /** 
+         * Parses the string as a float, exactly like `Number.parseFloat()` does.
+         * If the string cannot be parsed as a float, returns `null` instead.
+        */
+        toFloatOrNull(): number | null;
     }
 
     interface URLSearchParams {
@@ -110,6 +145,13 @@ declare global {
          * All other strings are considered decimal. 
          */
         parseIntStrict(rawString: string, radix?: number): number
+
+        /**
+         * Converts a string to a float, exactly like `Number.parseFloat()` does.
+         * However, if the string cannot be parsed as a float, throws a error.
+         * @param rawString A string to convert into a number.
+         */
+        parseFloatStrict(rawString: string): number;
     }
 }
 
@@ -125,7 +167,7 @@ Array.prototype.asIntegerListStrict = function(): number[] {
 
 Map.prototype.getStrict = function<K, V>(key: K, message?: string): V {
     const item = this.get(key);
-    if (!isString(message)) message = 'O item não existe no mapa.';
+    if (!isString(message)) message = 'the key does not exist in the map';
     assert(item !== undefined, message);
     return item;
 };
@@ -151,9 +193,43 @@ String.prototype.splitAsIntegerListStrict = function(separator: string | RegExp,
     return split.asIntegerListStrict();
 };
 
+String.prototype.toFloat = function(): number {
+    const value = this.valueOf();
+    return Number.parseFloat(value);
+};
+
+String.prototype.toFloatStrict = function(): number {
+    const value = this.valueOf();
+    return Number.parseFloatStrict(value);
+};
+
+String.prototype.toFloatOrNull = function(): number | null {
+    const value = this.valueOf();
+    const parsed = Number.parseFloat(value);
+    if (!isFiniteNumber(parsed)) return null;
+    return parsed;
+};
+
+String.prototype.toInteger = function(radix: number = 10): number {
+    const value = this.valueOf();
+    return Number.parseInt(value, radix);
+};
+
+String.prototype.toIntegerStrict = function(radix: number = 10): number {
+    const value = this.valueOf();
+    return Number.parseIntStrict(value, radix);
+};
+
+String.prototype.toIntegerOrNull = function(radix: number = 10): number | null {
+    const value = this.valueOf();
+    const parsed = Number.parseInt(value, radix);
+    if (!isInteger(parsed)) return null;
+    return parsed;
+};
+
 URLSearchParams.prototype.getStrict = function<T extends string>(name: string): T {
     const item = this.get(name);
-    assert(item !== null, 'O item não existe entre os parâmetros da URL.');
+    assert(item !== null, 'item does not exist among the URL search parameters');
     return item as T;
 };
 
@@ -165,7 +241,7 @@ URLSearchParams.prototype.getAsInteger = function(name: string, radix: number = 
 
 URLSearchParams.prototype.getAsIntegerStrict = function(name: string, radix: number = 10): number {
     const item = this.get(name);
-    assertString(item, 'O item não existe entre os parâmetros da URL.');
+    assertString(item, 'item does not exist among the URL search parameters');
     return Number.parseIntStrict(item, radix);
 };
 
@@ -194,8 +270,14 @@ Date.thirtyDaysFromNow = function(): number {
     return Date.now() + (3600000 * 24 * 30);
 };
 
+Number.parseFloatStrict = function(rawString: string): number {
+    const parsed = Number.parseFloat(rawString);
+    assertFinite(parsed, 'the string could not be parsed as a float');
+    return parsed;
+};
+
 Number.parseIntStrict = function(rawString: string, radix: number = 10): number {
     const parsed = Number.parseInt(rawString, radix);
-    assertInteger(parsed, 'Não foi possível obter um número inteiro a partir da string.');
+    assertInteger(parsed, 'the string could not be parsed as an integer');
     return parsed;
 };
