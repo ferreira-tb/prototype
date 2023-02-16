@@ -1,4 +1,14 @@
-import { assertFinite, assertInteger, assertPositiveNumber, assertString, isFiniteNumber, isInteger, isString } from '@tb-dev/ts-guard';
+import {
+    assertFinite,
+    assertInteger,
+    assertPositiveNumber,
+    assertString,
+    assertNotUndefined,
+    isFiniteNumber,
+    isInteger,
+    isString,
+    assertNotNull
+} from '@tb-dev/ts-guard';
 
 declare global {
     interface Array<T> {
@@ -168,7 +178,7 @@ Array.prototype.asIntegerListStrict = function(): number[] {
 Map.prototype.getStrict = function<K, V>(key: K, message?: string): V {
     const item = this.get(key);
     if (!isString(message)) message = 'the key does not exist in the map';
-    assert(item !== undefined, message);
+    assertNotUndefined(item, message);
     return item;
 };
 
@@ -229,7 +239,7 @@ String.prototype.toIntegerOrNull = function(radix: number = 10): number | null {
 
 URLSearchParams.prototype.getStrict = function<T extends string>(name: string): T {
     const item = this.get(name);
-    assert(item !== null, 'item does not exist among the URL search parameters');
+    assertNotNull(item, 'item does not exist among the URL search parameters');
     return item as T;
 };
 
