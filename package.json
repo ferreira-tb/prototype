@@ -38,6 +38,6 @@
         "dist/**/*"
     ],
     "dependencies": {
-        "@tb-dev/ts-guard": "^1.4.0"
+        "@tb-dev/ts-guard": "^2.0.0"
     }
 }
