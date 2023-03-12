@@ -37,6 +37,17 @@ declare global {
         toDate(): Date;
     }
 
+    interface ReadonlyMap<K, V> {
+        /**
+         * Returns a specified element from the Map object. If the value that is associated to the provided key is an object,
+         * then you will get a reference to that object and any change made to that object will effectively modify it inside the Map.
+         * 
+         * @returns Returns the element associated with the specified key.
+         * If no element is associated with the specified key, throws an error.
+         */
+        getStrict(key: K, message?: string): V;
+    }
+
     interface String {
         /**
          * Split a string into substrings using the specified separator and return them as a list of strings.

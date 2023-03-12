@@ -1,6 +1,6 @@
 {
     "name": "@tb-dev/prototype",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "Adds prototype methods to global objects",
     "repository": "ferreira-tb/prototype",
     "author": {
